@@ -55,3 +55,8 @@ Stable APIs should remain backward compatible before v2.0:
 - Top-level exports are broad and convenient, but namespace documentation must stay clear.
 - Some heavy symbolic operations are stable but expensive.
 - Gauge APIs intentionally model local trivializations, not global principal bundles.
+
+
+## Typing Policy
+
+CRR ships a `py.typed` marker so downstream users and type checkers can discover inline type information. Static type checking is currently enforced gradually, starting with the numerical helpers under `src/crr/numeric`, where NumPy/SciPy boundary validation is most important. Broader package-wide strictness should be expanded incrementally as symbolic APIs stabilize.

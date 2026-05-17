@@ -980,6 +980,8 @@ Run the full test suite from an editable install:
 ```bash
 python -m pip install -e ".[dev]"
 python -m pytest -q
+python -m ruff check .
+python -m mypy
 ```
 
 For source-checkout smoke checks without installing the package, use:
@@ -990,6 +992,7 @@ PYTHONPATH=src python -m crr.audit benchmarks --quick
 PYTHONPATH=src python -m compileall -q src tests examples notebooks
 ```
 
+The repository also includes a GitHub Actions workflow that installs the package, compiles the Python files, runs pytest, runs lint/type checks, and executes the API/benchmark audit commands on supported Python versions.
 The repository also includes a GitHub Actions workflow that installs the package, compiles the Python files, runs pytest, and executes the API/benchmark audit commands on supported Python versions.
 
 ## Limitations
