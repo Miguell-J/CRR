@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 import sympy as sp
 
 from crr import Manifold, Metric, ParametrizedMap, solve_geodesic
@@ -83,3 +84,25 @@ def test_parametrized_map_embeds_sphere_equator_geodesic():
 
     assert embedded.shape == (50, 3)
     np.testing.assert_allclose(np.linalg.norm(embedded, axis=1), 1, atol=1e-8)
+
+
+def test_geodesic_solution_reports_energy_drift():
+    x, y = sp.symbols("x y")
+    metric = Metric(Manifold("R2", 2, [x, y]), [[1, 0], [0, 1]])
+
+    solution = metric.solve_geodesic([0, 0], [1, 0], (0, 1), num_points=11)
+
+    np.testing.assert_allclose(solution.energy_drift(), 0, atol=1e-12)
+    assert solution.max_energy_drift() == pytest.approx(0, abs=1e-12)
+
+
+def test_solve_geodesic_rejects_invalid_numeric_inputs():
+    x, y = sp.symbols("x y")
+    metric = Metric(Manifold("R2", 2, [x, y]), [[1, 0], [0, 1]])
+
+    with pytest.raises(ValueError, match="t_span"):
+        metric.solve_geodesic([0, 0], [1, 0], (0, float("inf")))
+    with pytest.raises(ValueError, match="distinct"):
+        metric.solve_geodesic([0, 0], [1, 0], (1, 1))
+    with pytest.raises(ValueError, match="finite"):
+        metric.solve_geodesic([0, float("nan")], [1, 0], (0, 1))

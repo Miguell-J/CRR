@@ -2,6 +2,8 @@
 # # Geometry of the 2-Sphere
 
 # %%
+import _bootstrap  # noqa: F401
+
 import sympy as sp
 
 from crr.presets import sphere_metric, sphere_surface

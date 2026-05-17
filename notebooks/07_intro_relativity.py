@@ -2,6 +2,8 @@
 # # Intro Relativity Presets
 
 # %%
+import _bootstrap  # noqa: F401
+
 import sympy as sp
 
 from crr.presets import de_sitter_metric, minkowski_metric, schwarzschild_metric
