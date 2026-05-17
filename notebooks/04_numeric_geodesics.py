@@ -2,6 +2,8 @@
 # # Numeric Geodesics
 
 # %%
+import _bootstrap  # noqa: F401
+
 import numpy as np
 
 from crr.presets import sphere_metric

@@ -29,6 +29,12 @@ python -m pip install -e ".[dev,viz,notebook]"
 jupyter lab
 ```
 
+Notebook-style scripts in `notebooks/` include a small source-checkout bootstrap, so they can also be run directly before installation from the project root:
+
+```bash
+python notebooks/01_sphere_geometry.py
+```
+
 ## Quickstart
 
 ```python
@@ -967,11 +973,26 @@ Recommended workflows:
 - Relativity metrics: avoid full curvature simplification until the needed components are identified.
 - Gauge examples: use the identity Lie-algebra inner product for compact examples such as `su2` unless a specific invariant form is required.
 
-## Tests
+## Tests And Quality Checks
+
+Run the full test suite from an editable install:
 
 ```bash
-pytest
+python -m pip install -e ".[dev]"
+python -m pytest -q
+python -m ruff check .
+python -m mypy
 ```
+
+For source-checkout smoke checks without installing the package, use:
+
+```bash
+PYTHONPATH=src python -m crr.audit api
+PYTHONPATH=src python -m crr.audit benchmarks --quick
+PYTHONPATH=src python -m compileall -q src tests examples notebooks
+```
+
+The repository also includes a GitHub Actions workflow that installs the package, compiles the Python files, runs pytest, runs lint/type checks, and executes the API/benchmark audit commands on supported Python versions.
 
 ## Limitations
 

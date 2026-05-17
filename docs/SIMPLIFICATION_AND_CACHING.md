@@ -67,3 +67,10 @@ F_simplified = F.simplify()
 - Use audit benchmarks after changing symbolic code paths.
 
 Compute first, simplify late, and simplify only the object or component you need.
+
+
+## Numerical Geodesic Diagnostics
+
+`GeodesicSolution.energy_drift()` returns the sampled kinetic energy minus a reference value, defaulting to the first sample. `GeodesicSolution.max_energy_drift()` returns the maximum absolute drift, which is useful for quick regression checks and notebook diagnostics.
+
+The numerical solver validates finite initial coordinates, velocities, and integration endpoints before calling SciPy. Coordinate singularities and chart boundaries are still mathematical domain issues that callers must model explicitly, for example with SciPy events or shorter integration intervals.
