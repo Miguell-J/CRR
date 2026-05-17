@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "crr"
-version = "0.5.0"
+version = "1.0.2"
 description = "Symbolic differential geometry tools for curvature, Ricci, and Riemann tensors."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -32,6 +32,10 @@ dev = [
 ]
 viz = [
   "matplotlib>=3.8",
+]
+notebook = [
+  "ipython>=8",
+  "jupyterlab>=4",
 ]
 
 [tool.pytest.ini_options]

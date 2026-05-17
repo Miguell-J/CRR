@@ -43,6 +43,16 @@ class Metric:
 
         return self.manifold.coordinates
 
+    def __repr__(self) -> str:
+        """Return a concise debug representation."""
+
+        return f"Metric(manifold={self.manifold.name!r}, dimension={self.dimension})"
+
+    def __str__(self) -> str:
+        """Return a concise human-readable representation."""
+
+        return f"Metric on {self.manifold.name} ({self.dimension}D)"
+
     def inverse(self, simplify: bool = False) -> sp.Matrix:
         """Return the inverse metric matrix g^ij."""
 
@@ -60,6 +70,64 @@ class Metric:
             det = self.components.det()
             self._cache[key] = sp.simplify(det) if simplify else det
         return self._cache[key]
+
+    def volume_density(self, simplify: bool = False, absolute: bool = True) -> sp.Expr:
+        """Return the Riemannian volume density sqrt(abs(det(g)))."""
+
+        determinant = self.determinant()
+        density = sp.sqrt(sp.Abs(determinant)) if absolute else sp.sqrt(determinant)
+        return sp.simplify(density) if simplify else density
+
+    def integrate_scalar(
+        self,
+        scalar: sp.Expr,
+        ranges: list[tuple[sp.Symbol, object, object]] | tuple[tuple[sp.Symbol, object, object], ...],
+        simplify: bool = False,
+        absolute_density: bool = True,
+    ) -> sp.Expr:
+        """Integrate a scalar field against the metric volume density."""
+
+        self._validate_integration_ranges(ranges)
+        value = sp.sympify(scalar) * self.volume_density(absolute=absolute_density)
+        for integration_range in ranges:
+            value = sp.integrate(value, integration_range)
+        return sp.simplify(value) if simplify else value
+
+    def integrate_volume(
+        self,
+        ranges: list[tuple[sp.Symbol, object, object]] | tuple[tuple[sp.Symbol, object, object], ...],
+        simplify: bool = False,
+        absolute_density: bool = True,
+    ) -> sp.Expr:
+        """Integrate the metric volume density over a coordinate domain."""
+
+        return self.integrate_scalar(
+            sp.S.One,
+            ranges,
+            simplify=simplify,
+            absolute_density=absolute_density,
+        )
+
+    def integrate_scalar_numeric(
+        self,
+        scalar: sp.Expr,
+        ranges: list[tuple[sp.Symbol, object, object]] | tuple[tuple[sp.Symbol, object, object], ...],
+        params: dict[sp.Symbol, object] | None = None,
+        nquad_options: dict[str, object] | None = None,
+        absolute_density: bool = True,
+    ) -> float:
+        """Numerically integrate a scalar field against the metric volume density."""
+
+        from crr.numeric.integration import integrate_scalar_numeric
+
+        return integrate_scalar_numeric(
+            self,
+            scalar,
+            ranges,
+            params=params,
+            nquad_options=nquad_options,
+            absolute_density=absolute_density,
+        )
 
     def christoffel_symbols(self, simplify: bool = False) -> Tensor:
         """Return Christoffel symbols Gamma^k_ij."""
@@ -143,6 +211,20 @@ class Metric:
 
         return covariant_derivative_covariant_2tensor(self, tensor_field, simplify=simplify)
 
+    def flat(self, vector: Any, simplify: bool = False) -> "DifferentialForm":
+        """Lower a vector field index and return the associated 1-form."""
+
+        from crr.forms.musical import flat
+
+        return flat(self, vector, simplify=simplify)
+
+    def sharp(self, one_form: "DifferentialForm", simplify: bool = False) -> list[sp.Expr]:
+        """Raise a 1-form index and return vector components."""
+
+        from crr.forms.musical import sharp
+
+        return sharp(self, one_form, simplify=simplify)
+
     def geodesic_acceleration(
         self,
         velocity_symbols: list[sp.Symbol] | tuple[sp.Symbol, ...] | None = None,
@@ -200,8 +282,66 @@ class Metric:
             **solve_ivp_kwargs,
         )
 
+    def display(self) -> str:
+        """Display or return the metric matrix."""
+
+        return self.display_matrix()
+
+    def to_latex(self) -> str:
+        """Return the metric matrix as LaTeX."""
+
+        return sp.latex(self.components)
+
+    def to_markdown(self) -> str:
+        """Return a Markdown summary of the metric matrix."""
+
+        from crr.display.pretty import markdown_table
+
+        rows = [("Manifold", self.manifold.name), ("Dimension", str(self.dimension)), ("Matrix", str(self.components))]
+        return markdown_table(rows, headers=("Field", "Value"))
+
+    def display_matrix(self) -> str:
+        """Display or return the metric matrix as LaTeX."""
+
+        from crr.display.pretty import display_latex
+
+        return display_latex(self.to_latex())
+
+    def display_christoffel_nonzero(self, simplify: bool = False) -> str:
+        """Display or return nonzero Christoffel symbols."""
+
+        return self.christoffel_symbols(simplify=simplify).display_nonzero()
+
+    def display_ricci(self, simplify: bool = False) -> str:
+        """Display or return Ricci tensor components."""
+
+        return self.ricci_tensor(simplify=simplify).display_nonzero()
+
+    def display_scalar_curvature(self, simplify: bool = False) -> str:
+        """Display or return scalar curvature."""
+
+        from crr.display.pretty import display_latex
+
+        return display_latex(sp.latex(self.scalar_curvature(simplify=simplify)))
+
+    def display_einstein(self, simplify: bool = False) -> str:
+        """Display or return Einstein tensor components."""
+
+        return self.einstein_tensor(simplify=simplify).display_nonzero()
+
+    def _validate_integration_ranges(
+        self,
+        ranges: list[tuple[sp.Symbol, object, object]] | tuple[tuple[sp.Symbol, object, object], ...],
+    ) -> None:
+        if len(ranges) != self.dimension:
+            raise ValueError("One integration range is required for each coordinate.")
+        range_coordinates = tuple(item[0] for item in ranges)
+        if range_coordinates != self.coordinates:
+            raise ValueError("Integration ranges must be ordered like the metric coordinates.")
+
 
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from crr.forms import DifferentialForm
     from crr.numeric.geodesic_solver import GeodesicSolution

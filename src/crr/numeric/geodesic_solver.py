@@ -23,6 +23,19 @@ class GeodesicSolution:
     message: str
     raw_solution: Any = None
 
+    def __repr__(self) -> str:
+        """Return a concise debug representation."""
+
+        return (
+            f"GeodesicSolution(num_points={len(self.t)}, dimension={self.x.shape[1]}, "
+            f"success={self.success})"
+        )
+
+    def __str__(self) -> str:
+        """Return a concise human-readable representation."""
+
+        return f"Geodesic solution with {len(self.t)} points (success={self.success})"
+
     def coordinates(self) -> np.ndarray:
         """Return coordinate samples with shape ``(num_points, dimension)``."""
 
@@ -58,19 +71,65 @@ class GeodesicSolution:
 
         return self.t, self.x, self.v
 
-    def plot_coordinates(self):
+    def to_latex(self) -> str:
+        """Return a compact LaTeX summary."""
+
+        return rf"\mathrm{{GeodesicSolution}}(N={len(self.t)},\ \mathrm{{success}}={self.success})"
+
+    def to_markdown(self) -> str:
+        """Return a Markdown summary."""
+
+        from crr.display.pretty import markdown_table
+
+        rows = [
+            ("Points", str(len(self.t))),
+            ("Dimension", str(self.x.shape[1])),
+            ("Success", str(self.success)),
+            ("Message", self.message),
+        ]
+        return markdown_table(rows, headers=("Field", "Value"))
+
+    def display(self) -> str:
+        """Display or return a LaTeX summary."""
+
+        from crr.display.pretty import display_latex
+
+        return display_latex(self.to_latex())
+
+    def plot_coordinates(self, show: bool = True, ax=None, title: str | None = None, save_path: str | None = None):
         """Plot coordinate components against the integration parameter."""
 
         from crr.visualization.geodesics import plot_geodesic_coordinates
 
-        return plot_geodesic_coordinates(self)
+        return plot_geodesic_coordinates(self, show=show, ax=ax, title=title, save_path=save_path)
 
-    def plot_phase_component(self, i: int):
+    def plot_velocities(self, show: bool = True, ax=None, title: str | None = None, save_path: str | None = None):
+        """Plot velocity components against the integration parameter."""
+
+        from crr.visualization.geodesics import plot_geodesic_velocities
+
+        return plot_geodesic_velocities(self, show=show, ax=ax, title=title, save_path=save_path)
+
+    def plot_energy(self, show: bool = True, ax=None, title: str | None = None, save_path: str | None = None):
+        """Plot geodesic energy."""
+
+        from crr.visualization.geodesics import plot_geodesic_energy
+
+        return plot_geodesic_energy(self, show=show, ax=ax, title=title, save_path=save_path)
+
+    def plot_speed_squared(self, show: bool = True, ax=None, title: str | None = None, save_path: str | None = None):
+        """Plot squared speed."""
+
+        from crr.visualization.geodesics import plot_speed_squared
+
+        return plot_speed_squared(self, show=show, ax=ax, title=title, save_path=save_path)
+
+    def plot_phase_component(self, i: int, show: bool = True, ax=None, title: str | None = None, save_path: str | None = None):
         """Plot coordinate ``x_i`` against velocity ``v_i``."""
 
         from crr.visualization.geodesics import plot_phase_component
 
-        return plot_phase_component(self, i)
+        return plot_phase_component(self, i, show=show, ax=ax, title=title, save_path=save_path)
 
 
 def solve_geodesic(

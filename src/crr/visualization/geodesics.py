@@ -2,49 +2,117 @@
 
 from __future__ import annotations
 
-from typing import Any
-
-import numpy as np
+from crr.visualization.utils import get_figure_and_axis, maybe_show, save_figure
 
 
-def plot_geodesic_coordinates(solution: "GeodesicSolution"):
+def plot_geodesic_coordinates(
+    solution: "GeodesicSolution",
+    show: bool = True,
+    ax=None,
+    title: str | None = None,
+    save_path: str | None = None,
+):
     """Plot geodesic coordinates against the integration parameter."""
 
-    plt = _pyplot()
-    fig, ax = plt.subplots()
+    fig, ax = get_figure_and_axis(ax=ax)
     for i in range(solution.x.shape[1]):
         ax.plot(solution.t, solution.x[:, i], label=f"x{i}")
     ax.set_xlabel("t")
     ax.set_ylabel("coordinate")
+    ax.set_title(title or "Geodesic coordinates")
     ax.legend()
+    save_figure(fig, save_path)
+    maybe_show(fig, show=show)
     return fig, ax
 
 
-def plot_phase_component(solution: "GeodesicSolution", i: int):
+def plot_geodesic_velocities(
+    solution: "GeodesicSolution",
+    show: bool = True,
+    ax=None,
+    title: str | None = None,
+    save_path: str | None = None,
+):
+    """Plot geodesic velocity components against the integration parameter."""
+
+    fig, ax = get_figure_and_axis(ax=ax)
+    for i in range(solution.v.shape[1]):
+        ax.plot(solution.t, solution.v[:, i], label=f"v{i}")
+    ax.set_xlabel("t")
+    ax.set_ylabel("velocity")
+    ax.set_title(title or "Geodesic velocities")
+    ax.legend()
+    save_figure(fig, save_path)
+    maybe_show(fig, show=show)
+    return fig, ax
+
+
+def plot_geodesic_energy(
+    solution: "GeodesicSolution",
+    show: bool = True,
+    ax=None,
+    title: str | None = None,
+    save_path: str | None = None,
+):
+    """Plot geodesic energy."""
+
+    fig, ax = get_figure_and_axis(ax=ax)
+    ax.plot(solution.t, solution.energy())
+    ax.set_xlabel("t")
+    ax.set_ylabel("energy")
+    ax.set_title(title or "Geodesic energy")
+    save_figure(fig, save_path)
+    maybe_show(fig, show=show)
+    return fig, ax
+
+
+def plot_speed_squared(
+    solution: "GeodesicSolution",
+    show: bool = True,
+    ax=None,
+    title: str | None = None,
+    save_path: str | None = None,
+):
+    """Plot squared speed."""
+
+    fig, ax = get_figure_and_axis(ax=ax)
+    ax.plot(solution.t, solution.speed_squared())
+    ax.set_xlabel("t")
+    ax.set_ylabel("speed squared")
+    ax.set_title(title or "Speed squared")
+    save_figure(fig, save_path)
+    maybe_show(fig, show=show)
+    return fig, ax
+
+
+def plot_phase_component(
+    solution: "GeodesicSolution",
+    i: int,
+    show: bool = True,
+    ax=None,
+    title: str | None = None,
+    save_path: str | None = None,
+):
     """Plot coordinate component x_i against velocity component v_i."""
 
     if i < 0 or i >= solution.x.shape[1]:
         raise IndexError("component index out of range.")
-    plt = _pyplot()
-    fig, ax = plt.subplots()
+    fig, ax = get_figure_and_axis(ax=ax)
     ax.plot(solution.x[:, i], solution.v[:, i])
     ax.set_xlabel(f"x{i}")
     ax.set_ylabel(f"v{i}")
+    ax.set_title(title or f"Phase component {i}")
+    save_figure(fig, save_path)
+    maybe_show(fig, show=show)
     return fig, ax
 
 
-def plot_embedded_geodesic(surface: "ParametrizedMap", solution: "GeodesicSolution"):
+def plot_embedded_geodesic(surface: "ParametrizedMap", solution: "GeodesicSolution", **kwargs):
     """Plot a geodesic embedded by a parametrized map."""
 
-    points = surface.embed_geodesic(solution)
-    plt = _pyplot()
-    fig = plt.figure()
-    ax = fig.add_subplot(111, projection="3d" if points.shape[1] == 3 else None)
-    if points.shape[1] == 3:
-        ax.plot(points[:, 0], points[:, 1], points[:, 2])
-    else:
-        ax.plot(points[:, 0], points[:, 1])
-    return fig, ax
+    from crr.visualization.surfaces import plot_geodesic
+
+    return plot_geodesic(surface, solution, **kwargs)
 
 
 def plot_surface_with_geodesic(
@@ -53,39 +121,13 @@ def plot_surface_with_geodesic(
     u_range: tuple[float, float],
     v_range: tuple[float, float],
     resolution: int = 50,
+    **kwargs,
 ):
     """Plot a Euclidean R3 parametrized surface with an embedded geodesic."""
 
-    if surface.dimension != 2 or surface.ambient_dimension != 3:
-        raise ValueError("surface plotting currently requires a 2D surface in R3.")
+    from crr.visualization.surfaces import plot_surface_with_geodesic as _plot
 
-    plt = _pyplot()
-    u_values = np.linspace(u_range[0], u_range[1], resolution)
-    v_values = np.linspace(v_range[0], v_range[1], resolution)
-    uu, vv = np.meshgrid(u_values, v_values)
-    grid = np.column_stack([uu.ravel(), vv.ravel()])
-    surface_points = surface.evaluate(grid).reshape(resolution, resolution, 3)
-    geodesic_points = surface.embed_geodesic(solution)
-
-    fig = plt.figure()
-    ax = fig.add_subplot(111, projection="3d")
-    ax.plot_surface(
-        surface_points[:, :, 0],
-        surface_points[:, :, 1],
-        surface_points[:, :, 2],
-        alpha=0.35,
-        linewidth=0,
-    )
-    ax.plot(geodesic_points[:, 0], geodesic_points[:, 1], geodesic_points[:, 2], color="black")
-    return fig, ax
-
-
-def _pyplot() -> Any:
-    try:
-        import matplotlib.pyplot as plt
-    except ImportError as exc:
-        raise ImportError('Plotting requires matplotlib. Install with: python -m pip install "crr[viz]"') from exc
-    return plt
+    return _plot(surface, solution, u_range, v_range, resolution=resolution, **kwargs)
 
 
 from typing import TYPE_CHECKING

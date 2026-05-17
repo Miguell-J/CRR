@@ -76,6 +76,16 @@ class ParametrizedMap:
 
         return len(self.components)
 
+    def __repr__(self) -> str:
+        """Return a concise debug representation."""
+
+        return f"ParametrizedMap(name={self.name!r}, dimension={self.dimension}, ambient_dimension={self.ambient_dimension})"
+
+    def __str__(self) -> str:
+        """Return a concise human-readable representation."""
+
+        return f"{self.name}: R^{self.dimension} -> R^{self.ambient_dimension}"
+
     def jacobian(self, simplify: bool = False) -> sp.Matrix:
         """Return the Jacobian matrix dF^i/du^a."""
 
@@ -117,6 +127,51 @@ class ParametrizedMap:
 
         return self.volume_density(simplify=simplify)
 
+    def integrate_scalar(
+        self,
+        scalar: sp.Expr,
+        ranges: list[tuple[sp.Symbol, object, object]] | tuple[tuple[sp.Symbol, object, object], ...],
+        simplify: bool = False,
+    ) -> sp.Expr:
+        """Integrate a scalar field against the induced volume density."""
+
+        value = sp.sympify(scalar) * self.volume_density()
+        for integration_range in ranges:
+            value = sp.integrate(value, integration_range)
+        return sp.simplify(value) if simplify else value
+
+    def integrate_area(
+        self,
+        ranges: list[tuple[sp.Symbol, object, object]] | tuple[tuple[sp.Symbol, object, object], ...],
+        simplify: bool = False,
+    ) -> sp.Expr:
+        """Integrate the induced area density over a parameter domain."""
+
+        return self.integrate_scalar(sp.S.One, ranges, simplify=simplify)
+
+    def integrate_gaussian_curvature(
+        self,
+        ranges: list[tuple[sp.Symbol, object, object]] | tuple[tuple[sp.Symbol, object, object], ...],
+        intrinsic: bool = True,
+        simplify: bool = False,
+    ) -> sp.Expr:
+        """Integrate Gaussian curvature against the induced area density."""
+
+        if intrinsic:
+            curvature = sp.Rational(1, 2) * self.pullback_metric(simplify=simplify).scalar_curvature(simplify=simplify)
+        else:
+            curvature = self.gaussian_curvature_extrinsic(simplify=simplify)
+        return self.integrate_scalar(curvature, ranges, simplify=simplify)
+
+    def integrate_mean_curvature(
+        self,
+        ranges: list[tuple[sp.Symbol, object, object]] | tuple[tuple[sp.Symbol, object, object], ...],
+        simplify: bool = False,
+    ) -> sp.Expr:
+        """Integrate mean curvature against the induced area density."""
+
+        return self.integrate_scalar(self.mean_curvature(simplify=simplify), ranges, simplify=simplify)
+
     def evaluate(self, points: Sequence[Sequence[float]] | np.ndarray) -> np.ndarray:
         """Evaluate the parametrization at parameter points.
 
@@ -146,6 +201,173 @@ class ParametrizedMap:
         """Evaluate this parametrization along a numerical geodesic solution."""
 
         return self.evaluate(solution.x)
+
+    def display(self) -> str:
+        """Display or return the parametrization."""
+
+        return self.display_parametrization()
+
+    def to_latex(self) -> str:
+        """Return the parametrization as LaTeX equations."""
+
+        equations = []
+        for i, component in enumerate(self.components):
+            equations.append(rf"F^{i} = {sp.latex(component)}")
+        return r"\\ ".join(equations)
+
+    def to_markdown(self) -> str:
+        """Return a Markdown table of parametrization components."""
+
+        from crr.display.pretty import markdown_table
+
+        rows = [(f"F^{i}", str(component)) for i, component in enumerate(self.components)]
+        return markdown_table(rows, headers=("Component", "Expression"))
+
+    def display_parametrization(self) -> str:
+        """Display or return the parametrization as LaTeX."""
+
+        from crr.display.pretty import display_latex
+
+        return display_latex(self.to_latex())
+
+    def display_induced_metric(self, simplify: bool = False) -> str:
+        """Display or return the induced metric matrix."""
+
+        from crr.display.pretty import display_latex
+
+        return display_latex(sp.latex(self.induced_metric_components(simplify=simplify)))
+
+    def display_curvatures(self, simplify: bool = False) -> str:
+        """Display or return available surface curvature expressions."""
+
+        from crr.display.pretty import display_latex
+
+        metric = self.pullback_metric(simplify=simplify)
+        items = [rf"R = {sp.latex(metric.scalar_curvature(simplify=simplify))}"]
+        if self.dimension == 2 and self.ambient_dimension == 3:
+            items.append(rf"K = {sp.latex(self.gaussian_curvature_extrinsic(simplify=simplify))}")
+            items.append(rf"H = {sp.latex(self.mean_curvature(simplify=simplify))}")
+        return display_latex(r"\\ ".join(items))
+
+    def plot_surface(
+        self,
+        u_range: tuple[float, float],
+        v_range: tuple[float, float],
+        resolution: int = 80,
+        params: dict[sp.Symbol, object] | None = None,
+        ax=None,
+        show: bool = True,
+        color=None,
+        alpha: float = 1.0,
+        wireframe: bool = False,
+        title: str | None = None,
+        save_path: str | None = None,
+    ):
+        """Plot this 2D R3 parametrized surface."""
+
+        from crr.visualization.surfaces import plot_surface
+
+        return plot_surface(
+            self,
+            u_range,
+            v_range,
+            resolution=resolution,
+            params=params,
+            ax=ax,
+            show=show,
+            color=color,
+            alpha=alpha,
+            wireframe=wireframe,
+            title=title,
+            save_path=save_path,
+        )
+
+    def plot_curvature(
+        self,
+        curvature: str = "gaussian",
+        u_range: tuple[float, float] | None = None,
+        v_range: tuple[float, float] | None = None,
+        resolution: int = 80,
+        params: dict[sp.Symbol, object] | None = None,
+        intrinsic: bool = False,
+        ax=None,
+        show: bool = True,
+        title: str | None = None,
+        save_path: str | None = None,
+    ):
+        """Plot Gaussian or mean curvature on this surface."""
+
+        from crr.visualization.surfaces import plot_curvature
+
+        return plot_curvature(
+            self,
+            curvature=curvature,
+            u_range=u_range,
+            v_range=v_range,
+            resolution=resolution,
+            params=params,
+            intrinsic=intrinsic,
+            ax=ax,
+            show=show,
+            title=title,
+            save_path=save_path,
+        )
+
+    def plot_geodesic(
+        self,
+        solution: "GeodesicSolution",
+        ax=None,
+        show: bool = True,
+        color=None,
+        linewidth: float = 2,
+        title: str | None = None,
+        save_path: str | None = None,
+    ):
+        """Plot an embedded geodesic on this surface."""
+
+        from crr.visualization.surfaces import plot_geodesic
+
+        return plot_geodesic(
+            self,
+            solution,
+            ax=ax,
+            show=show,
+            color=color,
+            linewidth=linewidth,
+            title=title,
+            save_path=save_path,
+        )
+
+    def plot_surface_with_geodesic(
+        self,
+        solution: "GeodesicSolution",
+        u_range: tuple[float, float],
+        v_range: tuple[float, float],
+        resolution: int = 80,
+        params: dict[sp.Symbol, object] | None = None,
+        show: bool = True,
+        surface_alpha: float = 0.6,
+        geodesic_color=None,
+        title: str | None = None,
+        save_path: str | None = None,
+    ):
+        """Plot this surface with an embedded geodesic."""
+
+        from crr.visualization.surfaces import plot_surface_with_geodesic
+
+        return plot_surface_with_geodesic(
+            self,
+            solution,
+            u_range,
+            v_range,
+            resolution=resolution,
+            params=params,
+            show=show,
+            surface_alpha=surface_alpha,
+            geodesic_color=geodesic_color,
+            title=title,
+            save_path=save_path,
+        )
 
     def tangent_vectors(self, simplify: bool = False) -> tuple[sp.Matrix, sp.Matrix]:
         """Return tangent vectors F_u and F_v for a surface in Euclidean R3."""

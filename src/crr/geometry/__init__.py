@@ -9,6 +9,7 @@ from crr.geometry.covariant_derivative import (
 )
 from crr.geometry.einstein import einstein_tensor
 from crr.geometry.geodesic import geodesic_acceleration, geodesic_equations
+from crr.geometry.global_invariants import GaussBonnetResult, gauss_bonnet_check
 from crr.geometry.ricci import ricci_tensor
 from crr.geometry.riemann import riemann_tensor
 from crr.geometry.scalar_curvature import scalar_curvature
@@ -25,4 +26,6 @@ __all__ = [
     "einstein_tensor",
     "geodesic_acceleration",
     "geodesic_equations",
+    "GaussBonnetResult",
+    "gauss_bonnet_check",
 ]

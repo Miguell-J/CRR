@@ -59,6 +59,17 @@ class Tensor:
 
         return self.components.tolist()
 
+    def __repr__(self) -> str:
+        """Return a concise debug representation."""
+
+        return f"Tensor(name={self.name!r}, shape={self.shape}, index_signature={self.index_signature!r})"
+
+    def __str__(self) -> str:
+        """Return a concise human-readable representation."""
+
+        name = self.name or "Tensor"
+        return f"{name} tensor with shape {self.shape}"
+
     def simplify(self) -> "Tensor":
         """Return a tensor with each component simplified."""
 
@@ -190,6 +201,38 @@ class Tensor:
                 terms.append(rf"{label}_{{{suffix}}} = {sp.latex(value)}")
             return r",\quad ".join(terms)
         return sp.latex(self.components)
+
+    def to_latex_components(self) -> str:
+        """Return LaTeX equations for nonzero components."""
+
+        from crr.display.pretty import format_nonzero_components
+
+        return format_nonzero_components(self, latex=True)
+
+    def to_markdown_table(self) -> str:
+        """Return a Markdown table of nonzero components."""
+
+        from crr.display.pretty import markdown_table
+
+        rows = [(str(index), str(value)) for index, value in self.nonzero_components().items()]
+        return markdown_table(rows)
+
+    def to_markdown(self) -> str:
+        """Alias for :meth:`to_markdown_table`."""
+
+        return self.to_markdown_table()
+
+    def display(self) -> str:
+        """Display or return LaTeX component equations."""
+
+        from crr.display.pretty import display_latex
+
+        return display_latex(self.to_latex_components())
+
+    def display_nonzero(self) -> str:
+        """Display or return nonzero components."""
+
+        return self.display()
 
     def _validate_index(self, index: int) -> None:
         if index < 0 or index >= self.rank:
