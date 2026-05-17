@@ -2,6 +2,8 @@
 # # Gauss-Bonnet Checks
 
 # %%
+import _bootstrap  # noqa: F401
+
 import sympy as sp
 
 from crr import gauss_bonnet_check

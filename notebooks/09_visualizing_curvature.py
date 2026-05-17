@@ -2,7 +2,14 @@
 # # Visualizing Curvature
 
 # %%
+import _bootstrap  # noqa: F401
+
+import importlib.util
 import os
+
+if importlib.util.find_spec("matplotlib") is None:
+    print("Skipping visualization notebook: matplotlib is not installed.")
+    raise SystemExit(0)
 
 os.environ.setdefault("MPLCONFIGDIR", "/tmp/crr-matplotlib")
 

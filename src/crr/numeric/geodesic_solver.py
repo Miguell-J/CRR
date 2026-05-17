@@ -66,6 +66,22 @@ class GeodesicSolution:
 
         return 0.5 * self.speed_squared()
 
+    def energy_drift(self, reference: float | None = None) -> np.ndarray:
+        """Return energy minus a reference value along the solution.
+
+        By default the first sampled energy is used as the reference, which is
+        convenient for monitoring numerical conservation drift.
+        """
+
+        energy = self.energy()
+        baseline = float(energy[0]) if reference is None else float(reference)
+        return energy - baseline
+
+    def max_energy_drift(self, reference: float | None = None) -> float:
+        """Return the maximum absolute energy drift along the solution."""
+
+        return float(np.max(np.abs(self.energy_drift(reference=reference))))
+
     def to_numpy(self) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Return ``(t, x, v)`` NumPy arrays."""
 
@@ -149,11 +165,15 @@ def solve_geodesic(
     if num_points < 2:
         raise ValueError("num_points must be at least 2.")
 
+    start, stop = _as_time_span(t_span)
+    if start == stop:
+        raise ValueError("t_span endpoints must be distinct.")
+
     n = metric.dimension
     initial_x = _as_float_vector(x0, n, "x0")
     initial_v = _as_float_vector(v0, n, "v0")
     initial_state = np.concatenate([initial_x, initial_v])
-    t_eval = np.linspace(float(t_span[0]), float(t_span[1]), num_points)
+    t_eval = np.linspace(start, stop, num_points)
 
     christoffel_func = lambdify_christoffel(
         metric.christoffel_symbols(simplify=simplify),
@@ -169,7 +189,7 @@ def solve_geodesic(
 
     raw_solution = solve_ivp(
         rhs,
-        (float(t_span[0]), float(t_span[1])),
+        (start, stop),
         initial_state,
         method=method,
         t_eval=t_eval,
@@ -194,7 +214,20 @@ def _as_float_vector(values: Any, dimension: int, name: str) -> np.ndarray:
     array = np.asarray([float(value) for value in values], dtype=float)
     if array.shape != (dimension,):
         raise ValueError(f"{name} must have shape (dimension,).")
+    if not np.all(np.isfinite(array)):
+        raise ValueError(f"{name} must contain only finite values.")
     return array
+
+
+def _as_time_span(t_span: tuple[float, float]) -> tuple[float, float]:
+    try:
+        start, stop = t_span
+    except (TypeError, ValueError) as exc:
+        raise ValueError("t_span must contain exactly two finite values.") from exc
+    array = np.asarray([float(start), float(stop)], dtype=float)
+    if not np.all(np.isfinite(array)):
+        raise ValueError("t_span must contain exactly two finite values.")
+    return float(array[0]), float(array[1])
 
 
 from typing import TYPE_CHECKING

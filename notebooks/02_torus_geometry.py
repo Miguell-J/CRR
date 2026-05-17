@@ -2,6 +2,8 @@
 # # Torus Geometry
 
 # %%
+import _bootstrap  # noqa: F401
+
 import sympy as sp
 
 from crr.presets import torus_metric, torus_surface

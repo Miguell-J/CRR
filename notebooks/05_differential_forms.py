@@ -2,6 +2,8 @@
 # # Differential Forms
 
 # %%
+import _bootstrap  # noqa: F401
+
 import sympy as sp
 
 from crr import DifferentialForm, Manifold
